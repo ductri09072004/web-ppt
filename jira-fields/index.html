@@ -3,662 +3,110 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Checklist trường dữ liệu Jira</title>
+<title>Trường dữ liệu Jira</title>
 <style>
-
   :root {
     --bg: #f6f8fc;
-    --bg-2: #e8eef9;
     --ink: #1e293b;
     --muted: #5b6b85;
     --line: #dbe3f0;
     --card: #ffffff;
     --sys: #2563eb;
-    --sys-l: #dbeafe;
-    --hum: #ea7828;
-    --hum-l: #ffedd5;
     --ok: #16a34a;
-    --ok-l: #dcfce7;
-    --bad: #dc3c3c;
+    --ok-l: #f0fdf4;
     --bad-l: #fee2e2;
-    --warn: #f5b41e;
-    --dark: #0f172a;
-    --shadow: 0 18px 40px -18px rgba(30, 41, 59, .35);
-    --pad: clamp(24px, 5vw, 84px);
+    --bad: #b91c1c;
+    --hum-l: #ffedd5;
+    --hum: #b45309;
+    --code-bg: #eef2ff;
+    --code-ink: #3730a3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f172a; --ink: #e2e8f0; --muted: #94a3b8; --line: #334155; --card: #1e293b;
+      --ok-l: #14532d; --bad-l: #7f1d1d; --bad: #fecaca; --hum-l: #78350f; --hum: #fed7aa;
+      --code-bg: #312e81; --code-ink: #c7d2fe;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f172a; --ink: #e2e8f0; --muted: #94a3b8; --line: #334155; --card: #1e293b;
+    --ok-l: #14532d; --bad-l: #7f1d1d; --bad: #fecaca; --hum-l: #78350f; --hum: #fed7aa;
+    --code-bg: #312e81; --code-ink: #c7d2fe;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-snap-type: y mandatory; scroll-behavior: smooth; background: var(--dark); }
   body {
     font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-    color: var(--ink); background: var(--bg); overflow-x: hidden;
-    -webkit-font-smoothing: antialiased;
+    background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased;
+    padding: 24px 16px 48px;
   }
-
-  /* ---------- khung slide xếp chồng ---------- */
-  #deck { position: relative; }
-  .slide {
-    position: sticky; top: 0; height: 100vh; height: 100svh;
-    overflow: hidden;
-    display: flex; flex-direction: column; justify-content: center;
-    padding: clamp(56px, 8vh, 96px) var(--pad) clamp(48px, 7vh, 80px);
-    background: linear-gradient(180deg, var(--bg), var(--bg-2));
-    transform-origin: 50% 0%;
-    transform: scale(calc(1 - var(--cover, 0) * .05));
-    box-shadow: 0 -30px 60px -30px rgba(15, 23, 42, .45);
-    border-radius: 22px 22px 0 0;
-  }
-  .slide:first-child { border-radius: 0; box-shadow: none; }
-  .slide::after {
-    content: ""; position: absolute; inset: 0; background: #0b1020; pointer-events: none;
-    opacity: calc(var(--cover, 0) * .55);
-  }
-  .slide.dark { background: linear-gradient(180deg, #111a33, #0b1226); color: #eaf0ff; }
-  .slide.warm { background: linear-gradient(180deg, #fffaf0, #ffeccc); }
-  .slide.video { background: radial-gradient(1200px 600px at 50% 0%, #1b2748, #0a0f1f 70%); color: #eaf0ff; }
-
-  /* điểm bắt dính tách riêng khỏi slide sticky (slide sticky làm mất khả năng cuộn ngược) */
-  .snap { position: absolute; left: 0; width: 1px; height: 100vh; height: 100svh; scroll-snap-align: start; pointer-events: none; }
-
-  /* ---------- hiệu ứng xuất hiện ---------- */
-  .r { opacity: 0; transform: translateY(34px); transition: opacity .7s cubic-bezier(.2, .7, .2, 1), transform .7s cubic-bezier(.2, .7, .2, 1); transition-delay: calc(var(--i, 0) * 110ms + 150ms); }
-  .r.left { transform: translateX(-46px); }
-  .r.right { transform: translateX(46px); }
-  .r.zoom { transform: scale(.86); }
-  .slide.active .r { opacity: 1; transform: none; }
-
-  /* ---------- chữ ---------- */
-  .eyebrow { font-size: clamp(12px, 1.1vw, 16px); letter-spacing: .14em; text-transform: uppercase; font-weight: 700; color: var(--sys); margin-bottom: 14px; }
-  .dark .eyebrow, .video .eyebrow { color: #8fb2ff; }
-  h1 { font-size: clamp(34px, 5.2vw, 82px); line-height: 1.05; font-weight: 800; letter-spacing: -.02em; }
-  h2 { font-size: clamp(28px, 3.7vw, 58px); line-height: 1.1; font-weight: 800; letter-spacing: -.015em; }
-  h3 { font-size: clamp(17px, 1.6vw, 24px); font-weight: 700; }
-  p.lead { font-size: clamp(17px, 1.9vw, 28px); color: var(--muted); line-height: 1.45; max-width: 52ch; }
-  .dark p.lead, .video p.lead { color: #b6c4e6; }
-  .grad { background: linear-gradient(90deg, var(--sys), var(--hum)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .small { font-size: clamp(12px, 1.05vw, 16px); color: var(--muted); }
-
-  /* ---------- Slide 1 ---------- */
-  #s1 { background: radial-gradient(900px 600px at 80% 10%, #cfe0ff 0%, transparent 60%), radial-gradient(800px 600px at 10% 90%, #ffe1c2 0%, transparent 60%), linear-gradient(180deg, #f8fafe, #eaf0fb); }
-  .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .55; animation: float 14s ease-in-out infinite; pointer-events: none; }
-  .blob.b1 { width: 38vw; height: 38vw; background: #bcd4ff; right: -8vw; top: -10vw; }
-  .blob.b2 { width: 30vw; height: 30vw; background: #ffd3a8; left: -8vw; bottom: -12vw; animation-delay: -6s; }
-  @keyframes float { 50% { transform: translate(30px, 24px) scale(1.06); } }
-  #s1 { align-items: center; text-align: center; }
-  .titleblock { position: relative; max-width: min(1100px, 100%); display: flex; flex-direction: column; align-items: center; }
-  #s1 h1 { max-width: 20ch; }
-  .sub { margin: 22px auto 0; max-width: 46ch; font-size: clamp(17px, 1.8vw, 26px); color: var(--muted); line-height: 1.45; }
-  .byline { position: absolute; left: 0; right: 0; justify-content: center; bottom: clamp(36px, 6vh, 72px); font-size: clamp(14px, 1.3vw, 20px); color: var(--muted); display: flex; gap: 18px; align-items: center; }
-  .byline b { color: var(--ink); }
-  .brand { display: inline-flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 26px; }
-  .brand i { width: 14px; height: 14px; border-radius: 50%; background: var(--sys); box-shadow: 22px 0 0 var(--hum); margin-right: 22px; }
-
-  .quick { display: flex; gap: clamp(12px, 2vw, 22px); margin-top: clamp(22px, 4vh, 40px); flex-wrap: wrap; justify-content: center; }
-  .qbtn { display: inline-flex; align-items: center; gap: 14px; padding: 12px 26px 12px 14px; border-radius: 999px; border: 0; cursor: pointer; font: inherit; text-align: left; color: #fff;
-    background: linear-gradient(135deg, #3b82f6, var(--sys)); box-shadow: 0 16px 30px -12px var(--sys); transition: transform .2s, box-shadow .2s; }
-  .qbtn.alt { background: linear-gradient(135deg, #fb923c, var(--hum)); box-shadow: 0 16px 30px -12px var(--hum); }
-  .qbtn:hover { transform: translateY(-4px) scale(1.02); }
-  .qbtn .qi { width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, .95); color: var(--sys); display: grid; place-items: center; font-size: 16px; padding-left: 3px; flex: none; }
-  .qbtn.alt .qi { color: var(--hum); }
-  .qbtn b { display: block; font-size: clamp(16px, 1.6vw, 22px); }
-  .qbtn em { display: block; font-style: normal; font-size: clamp(12px, 1.1vw, 15px); opacity: .9; }
-
-  /* ---------- Slide 2 ---------- */
-  .q { font-size: clamp(34px, 5vw, 78px); line-height: 1.08; font-weight: 800; letter-spacing: -.02em; max-width: 18ch; }
-  .chips { display: flex; flex-wrap: wrap; gap: 14px; margin-top: clamp(24px, 4vh, 52px); max-width: 1000px; }
-  .chip { padding: 14px 24px; border-radius: 999px; background: #fff; border: 2px solid var(--line); font-size: clamp(16px, 1.7vw, 26px); font-weight: 600; box-shadow: var(--shadow); display: inline-flex; align-items: center; gap: 12px; }
-  .chip i { width: 12px; height: 12px; border-radius: 50%; background: var(--sys); }
-  .chip:nth-child(2n) i { background: var(--hum); }
-  .chip.ghost { border-style: dashed; color: var(--muted); box-shadow: none; background: transparent; }
-  .askhint { margin-top: 26px; color: var(--muted); font-size: clamp(14px, 1.3vw, 20px); }
-
-  .vright { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: flex-end; }
-  .vlink { border: 1.5px solid rgba(143, 178, 255, .7); background: rgba(37, 99, 235, .18); color: #dbe7ff; font: inherit; font-weight: 700; font-size: clamp(13px, 1.2vw, 17px); padding: 9px 20px; border-radius: 999px; cursor: pointer; transition: background .2s, transform .2s; white-space: nowrap; }
-  .vlink.alt { border-color: rgba(255, 170, 100, .8); background: rgba(234, 120, 40, .2); color: #ffe3cc; }
-  .vlink:hover { background: var(--sys); color: #fff; transform: translateY(-2px); }
-  .vlink.alt:hover { background: var(--hum); }
-  .vlink span { display: inline-block; transition: transform .2s; }
-  .vlink:hover span { transform: translateX(3px); }
-  .vlink:first-child:hover span { transform: none; }
-
-  /* ---------- video ---------- */
-  .vhead { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: clamp(10px, 2vh, 22px); }
-  .vwrap { position: relative; width: min(100%, calc((100svh - 190px) * 16 / 9)); margin: 0 auto; border-radius: 18px; overflow: hidden; background: #000; box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .7); aspect-ratio: 16 / 9; }
-  .vwrap video { width: 100%; height: 100%; display: block; background: #000; }
-  .play { position: absolute; inset: 0; display: grid; place-items: center; background: linear-gradient(180deg, rgba(0, 0, 0, .1), rgba(0, 0, 0, .45)); cursor: pointer; transition: opacity .3s; border: 0; color: #fff; }
-  .play span { width: clamp(70px, 8vw, 120px); height: clamp(70px, 8vw, 120px); border-radius: 50%; background: rgba(255, 255, 255, .95); display: grid; place-items: center; box-shadow: 0 14px 40px rgba(0, 0, 0, .5); transition: transform .25s; }
-  .play:hover span { transform: scale(1.08); }
-  .play svg { width: 42%; height: 42%; margin-left: 8%; fill: var(--sys); }
-  .vwrap.playing .play { opacity: 0; pointer-events: none; }
-  .placeholder { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; background: repeating-linear-gradient(45deg, #0e1730, #0e1730 16px, #111c3a 16px, #111c3a 32px); color: #b6c4e6; }
-  .placeholder.hidden { display: none; }
-  .placeholder b { display: block; font-size: clamp(20px, 2.4vw, 36px); color: #fff; margin-bottom: 12px; }
-  .steps3 { display: flex; gap: 14px; margin-top: 16px; justify-content: center; flex-wrap: wrap; }
-  .steps3 span { padding: 8px 16px; border-radius: 999px; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .15); font-size: clamp(13px, 1.2vw, 18px); color: #d6e1fb; }
-  .steps3 b { color: #ffb066; margin-right: 8px; }
-  .keyhint { font-size: clamp(12px, 1vw, 15px); color: #8ea2cf; }
-
-  /* ---------- Slide 4: 4 bước ---------- */
-  .flow4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(14px, 2vw, 28px); margin-top: clamp(24px, 4vh, 48px); position: relative; }
-  .step { background: var(--card); border-radius: 22px; padding: clamp(18px, 2vw, 30px); box-shadow: var(--shadow); border-top: 6px solid var(--sys); position: relative; }
-  .step.h { border-top-color: var(--hum); }
-  .step.k { border-top-color: #64748b; }
-  .step .n { width: 46px; height: 46px; border-radius: 50%; background: var(--sys); color: #fff; font-weight: 800; font-size: 22px; display: grid; place-items: center; margin-bottom: 14px; box-shadow: 0 10px 22px -8px var(--sys); }
-  .step.h .n { background: var(--hum); box-shadow: 0 10px 22px -8px var(--hum); }
-  .step.k .n { background: #64748b; box-shadow: 0 10px 22px -8px #64748b; }
-  .step h3 { margin-bottom: 8px; }
-  .step p { color: var(--muted); font-size: clamp(14px, 1.3vw, 19px); line-height: 1.4; }
-  .step .who { display: inline-block; margin-top: 12px; font-size: 12px; font-weight: 700; letter-spacing: .08em; padding: 4px 10px; border-radius: 999px; background: var(--sys-l); color: var(--sys); text-transform: uppercase; }
-  .step.h .who { background: var(--hum-l); color: var(--hum); }
-  .step.k .who { background: #e2e8f0; color: #475569; }
-  .rules { display: flex; gap: 18px; margin-top: clamp(18px, 3vh, 34px); flex-wrap: wrap; }
-  .rule { flex: 1 1 320px; padding: 16px 22px; border-radius: 16px; background: #fff; border: 2px solid var(--line); font-size: clamp(15px, 1.5vw, 22px); font-weight: 600; display: flex; gap: 14px; align-items: center; }
-  .rule b { color: var(--sys); }
-  .rule.h b { color: var(--hum); }
-
-  /* ---------- Slide 5: dòng dữ liệu ---------- */
-  .pipe { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-top: clamp(24px, 4vh, 48px); align-items: stretch; }
-  .node { position: relative; background: #fff; border-radius: 20px; padding: clamp(14px, 1.6vw, 24px); box-shadow: var(--shadow); border: 2px solid var(--line); margin-right: clamp(22px, 3vw, 44px); }
-  .node:last-child { margin-right: 0; }
-  .node h3 { font-size: clamp(15px, 1.5vw, 22px); margin-bottom: 8px; }
-  .node ul { list-style: none; font-size: clamp(12px, 1.15vw, 17px); color: var(--muted); line-height: 1.5; }
-  .node li::before { content: "• "; color: var(--sys); font-weight: 800; }
-  .node.sys { border-color: #bcd0fb; }
-  .node.hum { border-color: #fbd0a8; }
-  .node.hum li::before { color: var(--hum); }
-  .node.hl { border-color: var(--sys); box-shadow: 0 0 0 6px rgba(37, 99, 235, .12), var(--shadow); }
-  .node .tag { position: absolute; top: -14px; left: 16px; background: var(--sys); color: #fff; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 999px; }
-  .node.hum .tag { background: var(--hum); }
-  .arrow { position: absolute; right: calc(-1 * clamp(22px, 3vw, 44px)); top: 50%; width: clamp(22px, 3vw, 44px); height: 4px; background: repeating-linear-gradient(90deg, var(--sys) 0 8px, transparent 8px 14px); animation: dash 1s linear infinite; transform: translateY(-50%); }
-  .arrow::after { content: ""; position: absolute; right: -2px; top: -6px; border: 8px solid transparent; border-left: 12px solid var(--sys); }
-  @keyframes dash { to { background-position: 14px 0; } }
-  .callout { margin-top: clamp(18px, 3vh, 32px); padding: 16px 24px; border-radius: 16px; background: var(--sys-l); color: #1e40af; font-size: clamp(15px, 1.5vw, 22px); font-weight: 600; display: inline-flex; gap: 12px; align-items: center; }
-
-  /* ---------- Slide 6: so sánh ---------- */
-  table.cmp { width: 100%; border-collapse: separate; border-spacing: 0 12px; margin-top: clamp(14px, 2vh, 26px); }
-  .cmp th { text-align: left; font-size: clamp(13px, 1.2vw, 18px); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0 22px 4px; }
-  .cmp td { background: #fff; padding: clamp(14px, 1.8vh, 22px) 22px; font-size: clamp(15px, 1.5vw, 22px); }
-  .cmp td:first-child { border-radius: 16px 0 0 16px; font-weight: 700; width: 22%; }
-  .cmp td:nth-child(2) { color: var(--muted); }
-  .cmp td:last-child { border-radius: 0 16px 16px 0; background: var(--ok-l); color: #14532d; font-weight: 600; }
-  .cmp tr { box-shadow: var(--shadow); }
-  .cmp .x::before { content: "✕ "; color: var(--bad); font-weight: 800; }
-  .cmp .v::before { content: "✓ "; color: var(--ok); font-weight: 800; }
-
-  /* ---------- Slide 8 ---------- */
-  .cards4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: clamp(16px, 3vh, 34px); }
-  .cardb { background: #fff; border-radius: 20px; padding: clamp(16px, 1.8vw, 26px); box-shadow: var(--shadow); }
-  .cardb .ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 12px; background: linear-gradient(135deg, #60a5fa, var(--sys)); }
-  .cardb:nth-child(2) .ic { background: linear-gradient(135deg, #fdba74, var(--hum)); }
-  .cardb:nth-child(3) .ic { background: linear-gradient(135deg, #4ade80, var(--ok)); }
-  .cardb:nth-child(4) .ic { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
-  .cardb p { color: var(--muted); font-size: clamp(13px, 1.2vw, 18px); margin-top: 6px; line-height: 1.4; }
-  .lower { display: grid; grid-template-columns: 1.2fr 1fr; gap: 22px; margin-top: clamp(14px, 2.6vh, 30px); }
-  .box { background: #fff; border-radius: 20px; padding: clamp(16px, 1.8vw, 26px); box-shadow: var(--shadow); }
-  .box h3 { margin-bottom: 12px; font-size: clamp(15px, 1.4vw, 21px); }
-  .road { display: flex; align-items: center; gap: 0; }
-  .rstep { flex: 1; text-align: center; position: relative; font-size: clamp(12px, 1.1vw, 16px); font-weight: 700; }
-  .rstep::before { content: ""; display: block; width: 18px; height: 18px; border-radius: 50%; background: var(--line); margin: 0 auto 8px; position: relative; z-index: 1; }
-  .rstep::after { content: ""; position: absolute; top: 8px; left: 50%; right: -50%; height: 3px; background: var(--line); }
-  .rstep:last-child::after { display: none; }
-  .rstep.on::before { background: var(--ok); box-shadow: 0 0 0 6px rgba(22, 163, 74, .18); }
-  .rstep em { display: block; font-style: normal; font-weight: 500; color: var(--muted); font-size: .9em; margin-top: 2px; }
-  ul.metrics { list-style: none; font-size: clamp(13px, 1.25vw, 18px); line-height: 1.5; color: var(--muted); }
-  ul.metrics li { padding-left: 22px; position: relative; margin-bottom: 4px; }
-  ul.metrics li::before { content: "→"; position: absolute; left: 0; color: var(--sys); font-weight: 800; }
-
-  /* ---------- Slide 9 ---------- */
-  .ticks { list-style: none; margin-top: clamp(18px, 3vh, 36px); display: grid; gap: 16px; }
-  .ticks li { display: flex; gap: 18px; align-items: center; font-size: clamp(20px, 2.4vw, 36px); font-weight: 700; }
-  .ticks li::before { content: "✓"; width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; font-size: .7em; box-shadow: 0 10px 22px -8px var(--ok); flex: none; }
-  .thanks { margin-top: clamp(24px, 5vh, 60px); font-size: clamp(22px, 2.6vw, 40px); font-weight: 800; }
-  .btn { display: inline-flex; align-items: center; gap: 10px; margin-top: 22px; padding: 14px 26px; border-radius: 999px; border: 2px solid var(--sys); background: transparent; color: var(--sys); font: inherit; font-weight: 700; cursor: pointer; font-size: clamp(14px, 1.3vw, 19px); transition: background .2s, color .2s; }
-  .btn:hover { background: var(--sys); color: #fff; }
-
-  /* ---------- Phụ lục ---------- */
-  .appgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: clamp(16px, 3vh, 36px); }
-  .appcard { background: #fff; border: 2px solid var(--line); border-radius: 18px; padding: 18px 20px; text-align: left; cursor: pointer; font: inherit; color: inherit; box-shadow: var(--shadow); transition: transform .2s, border-color .2s; }
-  .appcard:hover { transform: translateY(-4px); border-color: var(--sys); }
-  .appcard b { display: block; color: var(--sys); font-size: 13px; letter-spacing: .1em; margin-bottom: 6px; }
-  .appcard span { font-weight: 700; font-size: clamp(14px, 1.35vw, 20px); line-height: 1.3; display: block; }
-  .appcard small { display: block; color: var(--muted); margin-top: 6px; font-size: clamp(12px, 1vw, 15px); line-height: 1.35; }
-  .faq { display: inline-block; padding: 10px 18px; border-radius: 14px; background: var(--hum-l); color: #9a4a0f; font-weight: 600; font-size: clamp(14px, 1.4vw, 21px); margin: 12px 0 clamp(14px, 3vh, 30px); max-width: 70ch; }
-  .tri { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-  .tri.two { grid-template-columns: repeat(2, 1fr); }
-  .tri.four { grid-template-columns: repeat(4, 1fr); }
-  .tbox { background: #fff; border-radius: 20px; padding: clamp(16px, 2vw, 28px); box-shadow: var(--shadow); border-top: 6px solid var(--sys); }
-  .tbox.o { border-top-color: var(--hum); }
-  .tbox.g { border-top-color: var(--ok); }
-  .tbox.k { border-top-color: #64748b; }
-  .tbox h3 { margin-bottom: 8px; }
-  .tbox p, .tbox li { color: var(--muted); font-size: clamp(13px, 1.3vw, 19px); line-height: 1.45; }
-  .tbox ul { padding-left: 18px; }
-  .kw { font-family: Consolas, monospace; font-weight: 700; color: var(--sys); }
-  .chain { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
-  .chain span { background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 12px 18px; font-weight: 700; font-size: clamp(14px, 1.5vw, 22px); box-shadow: var(--shadow); }
-  .chain i { font-style: normal; color: var(--muted); font-size: 22px; }
-  .chain .s { border-color: #bcd0fb; color: var(--sys); }
-  .chain .h { border-color: #fbd0a8; color: var(--hum); }
-  .chain .f { border-color: #94a3b8; color: #475569; }
-
-  /* ---------- Slide 2: nút hiển thị, chip, biểu đồ ---------- */
-  .s2grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: clamp(20px, 4vw, 70px); align-items: center; height: 100%; }
-  .s2left { display: flex; flex-direction: column; justify-content: center; position: relative; }
-  .s2left .q { font-size: clamp(30px, 4.2vw, 64px); }
-  button.reveal { align-self: flex-start; margin-top: clamp(22px, 4vh, 44px); background: var(--sys); color: #fff; border: 0; padding: 18px 34px; font-size: clamp(16px, 1.7vw, 24px); box-shadow: 0 16px 34px -12px var(--sys); transition: transform .2s, opacity .4s, box-shadow .2s; }
-  button.reveal:hover { transform: translateY(-3px); background: #1d4fd8; color: #fff; }
-  button.reveal kbd { margin-left: 12px; font: inherit; font-size: .7em; padding: 2px 8px; border-radius: 6px; background: rgba(255, 255, 255, .22); }
-  .slide.revealed button.reveal { display: none; }
-  .s2left .chips { margin-top: clamp(22px, 4vh, 40px); }
-  .s2left .chip { cursor: pointer; font: inherit; font-weight: 600; font-size: clamp(15px, 1.5vw, 22px); position: relative; opacity: 0; transform: translateY(18px) scale(.94); pointer-events: none; transition: opacity .5s, transform .5s, border-color .2s, background .2s; display: none; }
-  .slide.revealed .s2left .chip { display: inline-flex; }
-  .s2left .chip i { background: var(--c); }
-  .chip.m0 { --c: #2563eb; } .chip.m1 { --c: #ea7828; } .chip.m2 { --c: #16a34a; } .chip.m3 { --c: #7c3aed; } .chip.m4 { --c: #94a3b8; }
-  .slide.revealed.shown .s2left .chip { opacity: 1; transform: none; pointer-events: auto; }
-  .slide.revealed.shown .s2left .chip:nth-child(1) { transition-delay: .05s; } .slide.revealed.shown .s2left .chip:nth-child(2) { transition-delay: .15s; }
-  .slide.revealed.shown .s2left .chip:nth-child(3) { transition-delay: .25s; } .slide.revealed.shown .s2left .chip:nth-child(4) { transition-delay: .35s; }
-  .slide.revealed.shown .s2left .chip:nth-child(5) { transition-delay: .45s; }
-  .s2left .chip:hover { border-color: var(--c); }
-  .chip .cnt { min-width: 26px; height: 26px; border-radius: 13px; background: var(--c); color: #fff; font-size: 14px; display: none; place-items: center; padding: 0 8px; }
-  .chip .cnt.on { display: inline-grid; }
-  .s2left .askhint { margin-top: 18px; opacity: 0; transition: opacity .6s .6s; display: none; }
-  .slide.revealed .s2left .askhint { display: block; }
-  .slide.revealed.shown .s2left .askhint { opacity: 1; }
-  .s2right { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; opacity: 0; transform: scale(.9) translateY(20px); transition: opacity .7s .2s, transform .7s .2s; }
-  .slide.revealed .s2right { display: flex; }
-  .slide.revealed.shown .s2right { opacity: 1; transform: none; }
-  #pie { width: min(100%, 36vh, 380px); overflow: visible; filter: drop-shadow(0 18px 24px rgba(30, 41, 59, .18)); }
-  #pie .seg { fill: none; stroke-width: 34; transition: stroke-dasharray .9s cubic-bezier(.2, .7, .2, 1); }
-  #pie text { font-family: inherit; fill: var(--ink); }
-  #pieBig { font-size: 38px; font-weight: 800; } #pieSmall { font-size: 12px; fill: var(--muted); }
-  .legend { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; font-size: clamp(12px, 1.15vw, 17px); }
-  .legend li { display: flex; align-items: center; gap: 8px; color: var(--ink); }
-  .legend i { width: 12px; height: 12px; border-radius: 4px; background: var(--c); flex: none; }
-  .legend b { margin-left: auto; padding-left: 10px; }
-  .pcap { font-size: clamp(11px, 1vw, 14px); color: var(--muted); text-align: center; max-width: 46ch; line-height: 1.4; }
-  .pcap a { color: var(--sys); }
-  .linkbtn { border: 0; background: none; color: var(--sys); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; display: none; }
-  .linkbtn.on { display: inline; }
-
-  /* ---------- Slide ưu nhược ---------- */
-  .pc h2 { max-width: 24ch; }
-  .mtag { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 10px; background: var(--c); }
-  .mtag.m0 { --c: #2563eb; } .mtag.m1 { --c: #ea7828; } .mtag.m2 { --c: #16a34a; } .mtag.m3 { --c: #7c3aed; }
-  .pcgrid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(16px, 2.4vw, 36px); margin-top: clamp(16px, 3.4vh, 40px); }
-  .pcbox { border-radius: 24px; padding: clamp(18px, 2.2vw, 34px); box-shadow: var(--shadow); background: #fff; border-top: 8px solid var(--ok); }
-  .pcbox.con { border-top-color: var(--bad); }
-  .pcbox h3 { font-size: clamp(18px, 1.9vw, 28px); margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
-  .pcbox h3::before { content: "+"; width: 1.5em; height: 1.5em; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; font-size: .8em; }
-  .pcbox.con h3::before { content: "−"; background: var(--bad); }
-  .pcbox ul { list-style: none; display: grid; gap: 10px; }
-  .pcbox li { font-size: clamp(14px, 1.45vw, 21px); line-height: 1.35; padding-left: 22px; position: relative; }
-  .pcbox li::before { content: ""; position: absolute; left: 0; top: .5em; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
-  .pcbox.con li::before { background: var(--bad); }
-  .fit { margin-top: clamp(14px, 3vh, 30px); padding: 14px 22px; border-radius: 16px; background: var(--sys-l); color: #1e3a8a; font-size: clamp(14px, 1.5vw, 22px); }
-  .note { margin-top: 12px; font-size: clamp(11px, 1vw, 14px); color: var(--muted); }
-
-  /* ---------- Trợ lý KPI ---------- */
-  .botgrid { display: grid; grid-template-columns: 1.05fr 1fr; gap: clamp(18px, 3vw, 48px); margin-top: clamp(14px, 3vh, 34px); align-items: stretch; }
-  .chatmock { background: #fff; border-radius: 24px; box-shadow: 0 24px 50px -22px rgba(30, 41, 59, .45); overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--line); }
-  .chead { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: linear-gradient(90deg, #eaf1ff, #fff3e6); border-bottom: 1px solid var(--line); font-size: clamp(14px, 1.3vw, 19px); }
-  .chead em { margin-left: auto; font-style: normal; font-size: 12px; color: var(--muted); }
-  .cav { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--sys), var(--hum)); color: #fff; font-weight: 800; font-size: 13px; display: grid; place-items: center; }
-  .cbody { padding: clamp(12px, 1.6vw, 22px); display: flex; flex-direction: column; gap: 10px; flex: 1; }
-  .msg { max-width: 86%; padding: 10px 16px; border-radius: 18px; font-size: clamp(13px, 1.3vw, 18px); line-height: 1.4; }
-  .msg.u { align-self: flex-end; background: var(--sys); color: #fff; border-bottom-right-radius: 6px; }
-  .msg.a { align-self: flex-start; background: #f1f5fb; color: var(--ink); border-bottom-left-radius: 6px; }
-  .msg.prop { background: #fff; border: 2px solid #fbd0a8; width: 86%; padding: 12px 16px; }
-  .ptitle { font-weight: 800; color: var(--hum); margin-bottom: 6px; font-size: .95em; }
-  .pline { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px dashed var(--line); font-size: .92em; }
-  .pline span { color: var(--muted); }
-  .pbtns { display: flex; gap: 10px; margin-top: 10px; }
-  .pbtns span { padding: 6px 16px; border-radius: 999px; font-weight: 700; font-size: .9em; }
-  .pbtns .ok { background: var(--ok); color: #fff; animation: pulse 1.8s ease-in-out infinite; }
-  .pbtns .no { background: #eef2f7; color: var(--muted); }
-  @keyframes pulse { 50% { box-shadow: 0 0 0 7px rgba(22, 163, 74, .18); } }
-  .botcards { display: grid; gap: 14px; align-content: stretch; }
-  .bcard { display: flex; gap: 16px; align-items: flex-start; background: #fff; border-radius: 20px; padding: clamp(14px, 1.6vw, 24px); box-shadow: var(--shadow); border-left: 8px solid var(--sys); }
-  .bcard.o { border-left-color: var(--hum); } .bcard.g { border-left-color: var(--ok); }
-  .bi { width: 44px; height: 44px; border-radius: 14px; background: var(--sys-l); color: var(--sys); display: grid; place-items: center; font-size: 22px; font-weight: 800; flex: none; }
-  .bcard.o .bi { background: var(--hum-l); color: var(--hum); } .bcard.g .bi { background: var(--ok-l); color: var(--ok); }
-  .bcard h3 { margin-bottom: 4px; } .bcard p { color: var(--muted); font-size: clamp(13px, 1.25vw, 18px); line-height: 1.4; }
-  .botnote { display: flex; gap: 14px; flex-wrap: wrap; margin-top: clamp(12px, 2.4vh, 26px); }
-  .botnote span { padding: 8px 18px; border-radius: 999px; background: var(--sys-l); color: #1e3a8a; font-weight: 600; font-size: clamp(12px, 1.2vw, 17px); }
-  .tbox ul li + li { margin-top: 6px; }
-
-  /* ---------- điều hướng ---------- */
-  #bar { position: fixed; top: 0; left: 0; height: 4px; width: 0; background: linear-gradient(90deg, var(--sys), var(--hum)); z-index: 50; }
-  #dots { position: fixed; right: 18px; top: 50%; transform: translateY(-50%); z-index: 50; display: flex; flex-direction: column; gap: 10px; }
-  #dots button { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(100, 116, 139, .6); background: transparent; cursor: pointer; padding: 0; transition: all .25s; position: relative; }
-  #dots button.on { background: var(--sys); border-color: var(--sys); transform: scale(1.35); }
-  #dots button.app { border-radius: 3px; }
-  #dots button:hover::after { content: attr(data-t); position: absolute; right: 22px; top: 50%; transform: translateY(-50%); white-space: nowrap; background: var(--dark); color: #fff; padding: 4px 10px; border-radius: 8px; font-size: 12px; }
-  body.ondark #dots button { border-color: rgba(200, 215, 255, .6); }
-  body.ondark #dots button.on { background: #8fb2ff; border-color: #8fb2ff; }
-  #count { position: fixed; left: 22px; bottom: 16px; z-index: 50; font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .08em; }
-  body.ondark #count { color: #9db3e3; }
-  #hint { position: fixed; right: 22px; bottom: 14px; z-index: 50; font-size: 12px; color: var(--muted); background: rgba(255, 255, 255, .75); backdrop-filter: blur(6px); padding: 6px 12px; border-radius: 999px; transition: opacity .6s; }
-  body.ondark #hint { color: #b6c4e6; background: rgba(15, 23, 42, .6); }
-  #hint.off { opacity: 0; }
-
-  @media (max-width: 900px) {
-    .flow4, .cards4, .appgrid { grid-template-columns: repeat(2, 1fr); }
-    .pipe { grid-template-columns: 1fr; gap: 24px; } .arrow { display: none; }
-    .s2grid, .pcgrid, .botgrid { grid-template-columns: 1fr; }
-    .lower, .tri, .tri.four { grid-template-columns: 1fr; }
-    .slide { overflow-y: auto; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .r { transition: none; opacity: 1; transform: none; } .blob, .arrow { animation: none; } html { scroll-behavior: auto; }
-  }
-
-
-  /* ---------- riêng cho trang checklist Jira ---------- */
-  .tag { display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: clamp(11px, 1vw, 14px); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-  .tag.req { background: var(--bad-l); color: #b91c1c; }
-  .tag.need { background: var(--hum-l); color: #b45309; }
-  .tag.nice { background: var(--sys-l); color: #1d4ed8; }
-  .grp { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
-  .prog { font-size: clamp(12px, 1.1vw, 16px); color: var(--muted); font-weight: 600; }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+  header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  h1 { font-size: clamp(22px, 3vw, 30px); font-weight: 800; }
+  .prog { font-size: 14px; color: var(--muted); font-weight: 600; }
   .prog b { color: var(--ok); }
-  table.ck { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-top: clamp(6px, 1.4vh, 16px); }
-  .ck th { text-align: left; font-size: clamp(11px, 1vw, 14px); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0 14px 2px; }
-  .ck td { background: #fff; padding: clamp(8px, 1.3vh, 14px) 14px; font-size: clamp(12px, 1.2vw, 17px); line-height: 1.35; vertical-align: top; }
-  .ck tr { box-shadow: var(--shadow); }
-  .ck td:first-child { border-radius: 14px 0 0 14px; width: 44px; }
-  .ck td:last-child { border-radius: 0 14px 14px 0; background: #fff7f0; color: #7c3a0a; }
-  .ck input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--ok); cursor: pointer; }
-  .ck tr.done td { background: #f0fdf4; } .ck tr.done td:last-child { background: #f0fdf4; color: #166534; }
-  .ck .fname { font-weight: 800; display: block; }
-  code, .code { font-family: Consolas, "Cascadia Mono", monospace; font-size: .9em; background: #eef2ff; color: #3730a3; padding: 1px 7px; border-radius: 6px; white-space: nowrap; }
-  .conds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: clamp(14px, 3vh, 34px); }
-  .flowrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: clamp(14px, 3vh, 30px); }
-  .flowrow .fb { background: #fff; border: 2px solid var(--line); border-radius: 16px; padding: 12px 18px; font-weight: 700; font-size: clamp(13px, 1.4vw, 20px); box-shadow: var(--shadow); }
-  .flowrow .fb.s { border-color: #bcd0fb; color: var(--sys); } .flowrow .fb.h { border-color: #fbd0a8; color: var(--hum); }
-  .flowrow i { font-style: normal; color: var(--muted); font-size: 22px; }
-  .fgrid { display: grid; gap: 14px; margin-top: clamp(10px, 2.4vh, 26px); }
-  .fgrid.c3 { grid-template-columns: repeat(3, 1fr); } .fgrid.c2 { grid-template-columns: repeat(2, 1fr); }
-  .fcard { background: #fff; border-radius: 20px; padding: clamp(14px, 1.6vw, 24px); box-shadow: var(--shadow); border-top: 6px solid var(--sys); }
-  .fcard.o { border-top-color: var(--hum); } .fcard.g { border-top-color: var(--ok); } .fcard.p { border-top-color: #7c3aed; } .fcard.k { border-top-color: #64748b; }
-  .fcard h3 { margin-bottom: 8px; font-size: clamp(15px, 1.5vw, 21px); }
-  .formula { background: #0f172a; color: #e2e8f0; border-radius: 12px; padding: 10px 14px; font-family: Consolas, "Cascadia Mono", monospace; font-size: clamp(11px, 1.05vw, 15px); line-height: 1.45; margin: 6px 0 8px; }
-  .formula b { color: #fbbf24; font-weight: 700; }
-  .fcard .uses, .fcard .miss { font-size: clamp(11px, 1.05vw, 15px); line-height: 1.4; color: var(--muted); margin-top: 4px; }
-  .fcard .uses b { color: var(--sys); } .fcard .miss b { color: #b45309; }
-  .steps { display: grid; gap: 10px; margin-top: clamp(10px, 2.4vh, 24px); }
-  .stp { display: flex; gap: 14px; align-items: flex-start; background: #fff; border-radius: 16px; padding: 12px 18px; box-shadow: var(--shadow); font-size: clamp(13px, 1.3vw, 18px); line-height: 1.4; }
-  .stp .n { width: 34px; height: 34px; border-radius: 50%; background: var(--sys); color: #fff; display: grid; place-items: center; font-weight: 800; flex: none; }
-  .stp b { display: block; }
-  table.mx { width: 100%; border-collapse: collapse; margin-top: clamp(8px, 2vh, 22px); font-size: clamp(11px, 1.1vw, 16px); background: #fff; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
-  .mx th, .mx td { padding: clamp(6px, 1vh, 11px) 8px; text-align: center; border-bottom: 1px solid var(--line); }
-  .mx th { background: #eef2ff; color: #3730a3; font-weight: 700; font-size: .88em; }
-  .mx td:first-child, .mx th:first-child { text-align: left; font-weight: 700; padding-left: 14px; }
-  .mx td.y { color: var(--sys); font-size: 1.3em; line-height: 1; }
-  .mx tr:last-child td { border-bottom: 0; }
-  .back { position: fixed; left: 22px; top: 16px; z-index: 60; font-size: 13px; font-weight: 700; color: var(--sys); background: rgba(255,255,255,.85); backdrop-filter: blur(6px); padding: 6px 14px; border-radius: 999px; text-decoration: none; box-shadow: 0 6px 16px -8px rgba(0,0,0,.3); }
-  .back:hover { background: var(--sys); color: #fff; }
-  .note2 { margin-top: 10px; font-size: clamp(11px, 1vw, 14px); color: var(--muted); line-height: 1.4; }
-  .eg { background: var(--ok-l); border-radius: 16px; padding: 14px 20px; font-size: clamp(13px, 1.3vw, 18px); line-height: 1.5; color: #14532d; }
-  .eg b { color: #166534; }
-  @media (max-width: 900px) { .conds, .fgrid.c3, .fgrid.c2 { grid-template-columns: 1fr; } }
+  .back { font-size: 13px; font-weight: 600; color: var(--sys); text-decoration: none; }
+  .back:hover { text-decoration: underline; }
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  table { width: 100%; border-collapse: collapse; min-width: 820px; }
+  th { text-align: left; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg); }
+  td { padding: 10px 14px; font-size: 14px; line-height: 1.4; vertical-align: top; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: 0; }
+  td.chk { width: 40px; }
+  input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--ok); cursor: pointer; }
+  tr.done td { background: var(--ok-l); }
+  .fname { font-weight: 700; }
+  code { font-family: Consolas, "Cascadia Mono", monospace; font-size: .9em; background: var(--code-bg); color: var(--code-ink); padding: 1px 6px; border-radius: 5px; white-space: nowrap; }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .tag.req { background: var(--bad-l); color: var(--bad); }
+  .tag.need { background: var(--hum-l); color: var(--hum); }
+  td.miss { color: var(--muted); }
+  @media (max-width: 600px) { body { padding: 16px 12px 32px; } }
 </style>
 </head>
 <body>
-<a class="back" href="/">← Về bài thuyết trình</a>
-<div id="bar"></div>
-<nav id="dots" aria-label="Điều hướng slide"></nav>
-<div id="count"></div>
-<div id="hint">↑ ↓ chuyển slide · tick ô để đánh dấu đã kiểm tra</div>
-
-<main id="deck">
-
-<!-- 1 -->
-<section class="slide" id="j1" data-title="Mở đầu">
-  <div class="blob b1"></div><div class="blob b2"></div>
-  <div class="titleblock" style="max-width:min(1100px,100%)">
-    <div class="eyebrow r" style="--i:0">Dữ liệu đầu vào · Jira</div>
-    <h1 class="r" style="--i:1;max-width:18ch">Checklist <span class="grad">trường dữ liệu Jira</span> cho điểm KPI chính xác</h1>
-    <p class="sub r" style="--i:2">Các trường cần có trong ticket, công thức hệ thống áp dụng cho từng trường, và hậu quả khi thiếu.</p>
+<div class="wrap">
+  <header>
+    <h1>Trường dữ liệu Jira cần có</h1>
+    <span class="prog" id="prog"></span>
+  </header>
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th></th><th>Mức</th><th>Trường</th><th>Key Jira</th><th>Dùng để</th><th>Nếu thiếu</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="chk"><input type="checkbox" data-k="A1"></td><td><span class="tag req">Bắt buộc</span></td><td class="fname">Mã ticket</td><td><code>key</code></td><td>Định danh ticket, liên kết bằng chứng về Jira.</td><td class="miss">Ticket không được ghi nhận.</td></tr>
+        <tr><td class="chk"><input type="checkbox" data-k="A2"></td><td><span class="tag req">Bắt buộc</span></td><td class="fname">Dự án</td><td><code>project.key</code></td><td>Lọc ticket theo Project Key của kết nối.</td><td class="miss">Ticket của dự án không được đồng bộ.</td></tr>
+        <tr><td class="chk"><input type="checkbox" data-k="A3"></td><td><span class="tag req">Bắt buộc</span></td><td class="fname">Email người được giao</td><td><code>assignee.emailAddress</code><br><code>assignee.accountId</code> / <code>name</code></td><td>Gán ticket cho nhân viên có email trùng khớp (không phân biệt hoa thường).</td><td class="miss">Ticket không tính cho ai, nằm trong "Tài khoản chưa khớp email".</td></tr>
+        <tr><td class="chk"><input type="checkbox" data-k="A4"></td><td><span class="tag req">Bắt buộc</span></td><td class="fname">Trạng thái</td><td><code>status.name</code><br><code>statusCategory.key</code></td><td>Xác định ticket đã hoàn thành (nhóm <code>done</code> hoặc trạng thái khai báo ở tab Trạng thái Done).</td><td class="miss">Không ticket nào được tính là hoàn thành.</td></tr>
+        <tr><td class="chk"><input type="checkbox" data-k="A5"></td><td><span class="tag req">Bắt buộc</span></td><td class="fname">Nhật ký thay đổi</td><td><code>changelog.histories</code></td><td>Đếm số lần mở lại; suy ra ngày hoàn thành khi thiếu <code>resolutiondate</code>.</td><td class="miss">Reopen Rate luôn bằng 0; ngày hoàn thành kém chính xác.</td></tr>
+        <tr><td class="chk"><input type="checkbox" data-k="B1"></td><td><span class="tag need">Cần có</span></td><td class="fname">Ngày hoàn thành</td><td><code>resolutiondate</code></td><td>Quyết định ticket thuộc kỳ nào, đúng hạn hay trễ hạn; tính Resolution Time.</td><td class="miss">Suy ra từ changelog; bằng chứng hiện nhãn "suy ra".</td></tr>
+        <tr><td class="chk"><input type="checkbox" data-k="B2"></td><td><span class="tag need">Cần có</span></td><td class="fname">Hạn chót</td><td><code>duedate</code></td><td>Mốc đúng hạn ưu tiên 1 (tính đến hết ngày).</td><td class="miss">Dùng Ngày kết thúc kế hoạch.</td></tr>
+        <tr><td class="chk"><input type="checkbox" data-k="B3"></td><td><span class="tag need">Cần có</span></td><td class="fname">Ngày kết thúc kế hoạch</td><td><code>customfield_10102</code></td><td>Mốc đúng hạn ưu tiên 2 (tính đến hết ngày).</td><td class="miss">Dùng ngày kết thúc Sprint.</td></tr>
+        <tr><td class="chk"><input type="checkbox" data-k="B4"></td><td><span class="tag need">Cần có</span></td><td class="fname">Sprint</td><td><code>customfield_10110</code></td><td>Ngày kết thúc Sprint là mốc đúng hạn ưu tiên 3.</td><td class="miss">Thiếu cả 3 mốc: ticket không được tính đúng hạn, có cảnh báo.</td></tr>
+        <tr><td class="chk"><input type="checkbox" data-k="B5"></td><td><span class="tag need">Cần có</span></td><td class="fname">Ngày tạo</td><td><code>created</code></td><td>Resolution Time, Committed vs Completed.</td><td class="miss">Ticket bị loại khỏi Resolution Time; có cảnh báo.</td></tr>
+        <tr><td class="chk"><input type="checkbox" data-k="B6"></td><td><span class="tag need">Cần có</span></td><td class="fname">Story Points</td><td><code>customfield_10111</code></td><td>Completed Story Point, Committed vs Completed, Workload.</td><td class="miss">Ticket tính 0 điểm; có cảnh báo thiếu Story Point.</td></tr>
+        <tr><td class="chk"><input type="checkbox" data-k="B7"></td><td><span class="tag need">Cần có</span></td><td class="fname">Loại ticket</td><td><code>issuetype.name</code></td><td>Nhận diện Bug và Incident (tên chứa "bug" / "incident").</td><td class="miss">Bug Rate và Incident Count không đúng.</td></tr>
+        <tr><td class="chk"><input type="checkbox" data-k="B8"></td><td><span class="tag need">Cần có</span></td><td class="fname">Kết quả xử lý</td><td><code>resolution.name</code></td><td>Loại ticket huỷ (Won't Do, Duplicate…) khỏi tính toán; nhận biết ticket bị mở lại.</td><td class="miss">Ticket huỷ chỉ nhận ra qua tên trạng thái.</td></tr>
+      </tbody>
+    </table>
   </div>
-</section>
-
-<!-- 2 -->
-<section class="slide" id="j2" data-title="Vì sao cần checklist">
-  <div class="eyebrow r" style="--i:0">Vì sao cần checklist</div>
-  <h2 class="r" style="--i:1">Thiếu một trường, một chỉ số có thể lệch</h2>
-  <div class="flowrow r" style="--i:2">
-    <span class="fb s">Ticket Jira</span><i>→</i><span class="fb s">Trường dữ liệu</span><i>→</i><span class="fb s">Chỉ số (metric)</span><i>→</i><span class="fb s">Điểm từng tiêu chí</span><i>→</i><span class="fb h">Final KPI · Hạng · Hệ số</span>
-  </div>
-  <p class="lead r" style="--i:3;margin-top:clamp(14px,3vh,30px)">Điểm tự động chỉ chính xác khi ticket có đủ dữ liệu. Thiếu trường thì ticket bị bỏ qua, bị tính thiếu, hoặc hệ thống phải suy ra, và màn hình hiện cảnh báo <b>Dữ liệu hạn chế</b>.</p>
-  <div class="conds" style="grid-template-columns:repeat(2,1fr)">
-    <div class="tbox r" style="--i:4"><h3>1. Export đủ changelog</h3><p>File import phải là kết quả nguyên vẹn của <code>/rest/api/2/search?expand=changelog</code>. Nếu giới hạn <code>fields</code>, phải giữ đủ các trường trong checklist.</p></div>
-    <div class="tbox o r" style="--i:5"><h3>2. Email khớp nhau</h3><p>Email nhân viên ở Quản lý nhân sự phải trùng email tài khoản Jira. Nếu Jira ẩn email, mọi ticket rơi vào "Tài khoản chưa khớp email".</p></div>
-  </div>
-</section>
-
-<!-- 3 -->
-<section class="slide" id="j3" data-title="Nhóm A · Bắt buộc" data-group="A">
-  <div class="grp r" style="--i:0"><span class="tag req">Nhóm A · Bắt buộc</span><span class="prog" data-prog="A"></span></div>
-  <h2 class="r" style="--i:1;font-size:clamp(24px,3vw,44px)">Thiếu thì ticket không được tính hoặc không gán được cho ai</h2>
-  <table class="ck r" style="--i:2">
-    <thead><tr><th></th><th>Trường</th><th>Hệ thống dùng để</th><th>Nếu thiếu</th></tr></thead>
-    <tbody>
-      <tr><td><input type="checkbox" data-k="A1"></td><td><span class="fname">Mã ticket</span><code>key</code></td><td>Định danh ticket, liên kết bằng chứng về Jira.</td><td>Ticket không được ghi nhận.</td></tr>
-      <tr><td><input type="checkbox" data-k="A2"></td><td><span class="fname">Dự án</span><code>project.key</code></td><td>Lọc ticket theo Project Key của kết nối.</td><td>Ticket của dự án không được đồng bộ.</td></tr>
-      <tr><td><input type="checkbox" data-k="A3"></td><td><span class="fname">Email người được giao</span><code>assignee.emailAddress</code><br><code>assignee.accountId</code> hoặc <code>name</code></td><td>Gán ticket cho nhân viên có email trùng khớp (không phân biệt hoa thường).</td><td>Ticket không tính cho ai, nằm trong "Tài khoản chưa khớp email".</td></tr>
-      <tr><td><input type="checkbox" data-k="A5"></td><td><span class="fname">Trạng thái</span><code>status.name</code> + <code>statusCategory.key</code></td><td>Xác định ticket đã hoàn thành (nhóm <code>done</code>, hoặc trạng thái khai báo ở tab Trạng thái Done).</td><td>Không ticket nào được tính là hoàn thành.</td></tr>
-      <tr><td><input type="checkbox" data-k="A6"></td><td><span class="fname">Nhật ký thay đổi</span><code>changelog.histories</code></td><td>Đếm số lần mở lại; suy ra ngày hoàn thành khi thiếu <code>resolutiondate</code>.</td><td>Reopen Rate luôn bằng 0; ngày hoàn thành kém chính xác.</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- 4 -->
-<section class="slide" id="j4" data-title="Nhóm B · Mốc thời gian" data-group="B">
-  <div class="grp r" style="--i:0"><span class="tag need">Nhóm B · Cần có</span><span class="prog" data-prog="B"></span></div>
-  <h2 class="r" style="--i:1;font-size:clamp(24px,3vw,44px)">Mốc thời gian: quyết định kỳ và đúng hạn hay trễ hạn</h2>
-  <table class="ck r" style="--i:2">
-    <thead><tr><th></th><th>Trường</th><th>Hệ thống dùng để</th><th>Nếu thiếu</th></tr></thead>
-    <tbody>
-      <tr><td><input type="checkbox" data-k="B1"></td><td><span class="fname">Ngày hoàn thành</span><code>resolutiondate</code></td><td>Ngày hoàn thành chính xác: quyết định ticket thuộc kỳ nào, đúng hạn hay trễ hạn.</td><td>Suy ra từ changelog; bằng chứng hiện nhãn "suy ra".</td></tr>
-      <tr><td><input type="checkbox" data-k="B2"></td><td><span class="fname">Hạn chót</span><code>duedate</code></td><td>Mốc đúng hạn ưu tiên 1 cho Đúng hạn và Trễ hạn.</td><td>Dùng Ngày kết thúc kế hoạch.</td></tr>
-      <tr><td><input type="checkbox" data-k="B3"></td><td><span class="fname">Ngày kết thúc kế hoạch</span><code>customfield_10102</code></td><td>Mốc đúng hạn ưu tiên 2.</td><td>Dùng ngày kết thúc Sprint.</td></tr>
-      <tr><td><input type="checkbox" data-k="B4"></td><td><span class="fname">Sprint</span><code>customfield_10110</code></td><td>Tên và trạng thái Sprint; ngày kết thúc Sprint là mốc đúng hạn ưu tiên 3.</td><td>Thiếu cả 3 mốc: ticket không được tính đúng hạn và có cảnh báo.</td></tr>
-      <tr><td><input type="checkbox" data-k="B5"></td><td><span class="fname">Ngày tạo</span><code>created</code></td><td>Resolution Time (từ lúc tạo đến lúc hoàn thành), Committed vs Completed.</td><td>Ticket bị loại khỏi Resolution Time; có cảnh báo.</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- 5 -->
-<section class="slide" id="j5" data-title="Nhóm B · Khối lượng và phân loại" data-group="B">
-  <div class="grp r" style="--i:0"><span class="tag need">Nhóm B · Cần có</span><span class="prog" data-prog="B"></span></div>
-  <h2 class="r" style="--i:1;font-size:clamp(24px,3vw,44px)">Khối lượng và phân loại ticket</h2>
-  <table class="ck r" style="--i:2">
-    <thead><tr><th></th><th>Trường</th><th>Hệ thống dùng để</th><th>Nếu thiếu</th></tr></thead>
-    <tbody>
-      <tr><td><input type="checkbox" data-k="B7"></td><td><span class="fname">Story Points</span><code>customfield_10111</code></td><td>Completed Story Point, Committed vs Completed, Workload.</td><td>Ticket không cộng vào khối lượng; có cảnh báo thiếu Story Point.</td></tr>
-      <tr><td><input type="checkbox" data-k="B8"></td><td><span class="fname">Loại ticket</span><code>issuetype.name</code></td><td>Nhận diện Bug và Incident (tên loại chứa "bug" hoặc "incident") cho Bug Rate, Incident Count.</td><td>Bug Rate và Incident Count không phản ánh đúng.</td></tr>
-      <tr><td><input type="checkbox" data-k="B9"></td><td><span class="fname">Kết quả xử lý</span><code>resolution.name</code></td><td>Loại ticket huỷ (Won't Do, Duplicate, Cannot Reproduce…) khỏi tính toán; nhận biết ticket bị mở lại.</td><td>Ticket huỷ chỉ nhận ra được qua tên trạng thái.</td></tr>
-    </tbody>
-  </table>
-  <p class="note2 r" style="--i:3">Mốc đúng hạn được xét theo thứ tự <code>duedate</code> → <code>customfield_10102</code> → ngày kết thúc Sprint; chỉ cần một trong ba.</p>
-</section>
-
-<!-- 7 -->
-<section class="slide warm" id="j7" data-title="Ticket thuộc kỳ nào">
-  <div class="eyebrow r" style="--i:0;color:var(--hum)">Quy tắc nền</div>
-  <h2 class="r" style="--i:1;font-size:clamp(24px,3vw,44px)">Ticket thuộc kỳ nào, và "đúng hạn" tính theo mốc nào</h2>
-  <div class="fgrid c2">
-    <div class="fcard r" style="--i:2"><h3>Ticket thuộc kỳ nào</h3>
-      <div class="steps" style="margin-top:6px">
-        <div class="stp" style="box-shadow:none;background:#f8fafc"><span class="n">1</span><span><b>Đã hoàn thành</b>Thuộc kỳ của <b>ngày hoàn thành</b> (YYYY-MM). Ngày hoàn thành lấy theo thứ tự: <code>resolutiondate</code> (hoặc suy ra từ changelog).</span></span></div>
-        <div class="stp" style="box-shadow:none;background:#f8fafc"><span class="n">2</span><span><b>Đã huỷ</b>(Won't Do, Duplicate…) Không gán kỳ, không tính tồn.</span></div>
-        <div class="stp" style="box-shadow:none;background:#f8fafc"><span class="n">3</span><span><b>Chưa hoàn thành</b>Không tính vào chỉ số dựa trên hoàn thành. Nếu đã mở ở kỳ trước, được đánh dấu "tồn từ kỳ trước".</span></div>
-      </div></div>
-    <div class="fcard o r" style="--i:3"><h3>Hạn chót thực tế (mốc đúng hạn)</h3>
-      <div class="formula">hạn chót = <b>duedate</b><br>  nếu trống → <b>customfield_10102</b> (Ngày kết thúc kế hoạch)<br>  nếu trống → <b>ngày kết thúc Sprint</b></div>
-      <p class="uses"><b>Chi tiết:</b> <code>duedate</code> và ngày kết thúc kế hoạch được tính đến <b>hết ngày</b> (23:59:59). Ticket hoàn thành trong ngày hạn chót vẫn là đúng hạn. Ngày kết thúc Sprint dùng đúng thời điểm Jira trả về.</p>
-      <p class="miss"><b>Thiếu cả ba:</b> ticket không được tính đúng hạn và có cảnh báo "x ticket thiếu hạn chót".</p>
-    </div>
-  </div>
-</section>
-
-<!-- 8 -->
-<section class="slide" id="j8" data-title="Công thức: tiến độ">
-  <div class="eyebrow r" style="--i:0">Công thức chỉ số · 1/3</div>
-  <h2 class="r" style="--i:1;font-size:clamp(24px,3vw,44px)">Tiến độ: hoàn thành, đúng hạn, trễ hạn</h2>
-  <div class="fgrid c3">
-    <div class="fcard r" style="--i:2"><h3>Task Completion Rate</h3>
-      <div class="formula">= số ticket <b>Done</b><br>÷ tất cả ticket trong kỳ × 100</div>
-      <p class="uses"><b>Dùng trường:</b> <code>status</code> + <code>statusCategory</code></p></div>
-    <div class="fcard g r" style="--i:3"><h3>On-time Completion Rate</h3>
-      <div class="formula">= số ticket Done có<br><b>ngày hoàn thành ≤ hạn chót</b><br>÷ số ticket Done × 100</div>
-      <p class="uses"><b>Dùng trường:</b> <code>status</code>, <code>resolutiondate</code>, <code>duedate</code> / <code>customfield_10102</code> / Sprint</p>
-      <p class="miss"><b>Thiếu hạn chót:</b> ticket không được tính đúng hạn (vẫn nằm trong mẫu số), có cảnh báo.</p></div>
-    <div class="fcard o r" style="--i:4"><h3>Late Task Rate</h3>
-      <div class="formula">= số ticket <b>trễ</b><br>÷ tất cả ticket trong kỳ × 100<br>trễ = Done sau hạn, hoặc chưa Done mà đã quá hạn</div>
-      <p class="uses"><b>Dùng trường:</b> như On-time, thêm <code>status</code></p>
-      <p class="miss"><b>Thiếu hạn chót:</b> ticket không được tính trễ, có cảnh báo.</p></div>
-  </div>
-</section>
-
-<!-- 9 -->
-<section class="slide" id="j9" data-title="Công thức: story point">
-  <div class="eyebrow r" style="--i:0">Công thức chỉ số · 2/3</div>
-  <h2 class="r" style="--i:1;font-size:clamp(24px,3vw,44px)">Khối lượng: story point</h2>
-  <div class="fgrid c3">
-    <div class="fcard r" style="--i:2"><h3>Completed Story Point</h3>
-      <div class="formula">= <b>Σ Story Points</b><br>của các ticket Done trong kỳ</div>
-      <p class="uses"><b>Dùng trường:</b> <code>customfield_10111</code>, <code>status</code></p>
-      <p class="miss"><b>Thiếu Story Points:</b> ticket tính 0 điểm và có cảnh báo "x ticket hoàn thành thiếu story point".</p></div>
-    <div class="fcard g r" style="--i:3"><h3>Committed vs Completed</h3>
-      <div class="formula">= <b>Completed SP</b><br>÷ (Committed SP + Completed SP) × 100<br>Committed = SP ticket tạo trong ~1 tháng gần nhất (ước tính)</div>
-      <p class="uses"><b>Dùng trường:</b> <code>customfield_10111</code>, <code>created</code>, <code>status</code></p>
-      <p class="miss"><b>Thiếu:</b> ticket tính 0 SP; không có SP nào thì không tính được chỉ số.</p></div>
-    <div class="fcard o r" style="--i:4"><h3>Workload</h3>
-      <div class="formula">= <b>Σ Story Points</b><br>của các ticket <b>chưa</b> Done</div>
-      <p class="uses"><b>Dùng trường:</b> <code>customfield_10111</code>, <code>status</code></p>
-      <p class="miss"><b>Thiếu Story Points:</b> ticket không cộng vào khối lượng đang làm.</p></div>
-  </div>
-</section>
-
-<!-- 10 -->
-<section class="slide" id="j10" data-title="Công thức: chất lượng và thời gian">
-  <div class="eyebrow r" style="--i:0">Công thức chỉ số · 3/3</div>
-  <h2 class="r" style="--i:1;font-size:clamp(24px,3vw,44px)">Chất lượng và thời gian xử lý</h2>
-  <div class="fgrid c2" style="gap:14px">
-    <div class="fcard o r" style="--i:2"><h3>Bug Rate</h3>
-      <div class="formula">= số ticket loại <b>Bug</b><br>÷ tất cả ticket × 100</div>
-      <p class="uses"><b>Trường:</b> <code>issuetype.name</code> chứa "bug"</p></div>
-    <div class="fcard o r" style="--i:2"><h3>Reopen Rate</h3>
-      <div class="formula">= <b>tổng lần mở lại</b><br>÷ số ticket Done × 100</div>
-      <p class="uses"><b>Trường:</b> <code>changelog</code> (resolution từ có giá trị về trống = 1 lần)</p></div>
-    <div class="fcard o r" style="--i:3"><h3>Incident Count</h3>
-      <div class="formula">= số ticket loại <b>Incident</b></div>
-      <p class="uses"><b>Trường:</b> <code>issuetype.name</code> chứa "incident"</p></div>
-    <div class="fcard p r" style="--i:3"><h3>Resolution Time</h3>
-      <div class="formula">= trung bình<br>(<b>ngày hoàn thành − ngày tạo</b>)<br>theo ngày, ticket Done</div>
-      <p class="uses"><b>Trường:</b> <code>resolutiondate</code>, <code>created</code></p></div>
-  </div>
-</section>
-
-<!-- 11 -->
-<section class="slide dark" id="j11" data-title="Từ chỉ số ra điểm">
-  <div class="eyebrow r" style="--i:0">Từ chỉ số ra điểm</div>
-  <h2 class="r" style="--i:1;font-size:clamp(24px,3vw,44px)">Quy tắc chấm điểm theo ngưỡng</h2>
-  <div class="steps" style="grid-template-columns:repeat(2,1fr)">
-    <div class="stp r" style="--i:2;color:#1e293b"><span class="n">1</span><span><b>Chỉ số</b>Hệ thống tính giá trị chỉ số của từng người trong kỳ (ví dụ 88% đúng hạn).</span></div>
-    <div class="stp r" style="--i:3;color:#1e293b"><span class="n">2</span><span><b>Điểm 0–10 theo ngưỡng</b>Lấy dòng đầu tiên có giá trị ≥ ngưỡng; không dòng nào khớp thì dùng điểm mặc định.</span></div>
-    <div class="stp r" style="--i:4;color:#1e293b"><span class="n">3</span><span><b>Điểm tiêu chí</b>Điểm 0–10 ÷ 10 × điểm tối đa của tiêu chí.</span></div>
-    <div class="stp r" style="--i:5;color:#1e293b"><span class="n">4</span><span><b>Final KPI, hạng, hệ số</b>Cộng các tiêu chí; tra bảng hạng và hệ số theo Final KPI.</span></div>
-  </div>
-  <div class="eg r" style="--i:6;margin-top:clamp(12px,3vh,28px)"><b>Ví dụ theo bộ quy tắc FPT Play Demo (minh họa):</b> quy tắc "Đúng hạn" có các ngưỡng ≥95% → 10 điểm, ≥85% → 8, ≥70% → 6, ≥50% → 4, còn lại 2. Một người có <b>88%</b> ticket đúng hạn rơi vào ngưỡng ≥85% → <b>8 điểm</b>. Tiêu chí có điểm tối đa 3 nên điểm tiêu chí = 8 ÷ 10 × 3 = <b>2.40</b>.</div>
-</section>
-
-<!-- 12 -->
-<section class="slide" id="j12" data-title="Ma trận trường × chỉ số">
-  <div class="eyebrow r" style="--i:0">Tổng hợp</div>
-  <h2 class="r" style="--i:1;font-size:clamp(24px,3vw,44px)">Trường nào ảnh hưởng chỉ số nào</h2>
-  <table class="mx r" style="--i:2">
-    <thead><tr><th>Trường Jira</th><th>Hoàn thành</th><th>Đúng hạn</th><th>Trễ hạn</th><th>SP hoàn thành</th><th>Committed vs Completed</th><th>Workload</th><th>Bug</th><th>Incident</th><th>Reopen</th><th>Resolution Time</th></tr></thead>
-    <tbody>
-      <tr><td>status</td><td class="y">●</td><td class="y">●</td><td class="y">●</td><td class="y">●</td><td class="y">●</td><td class="y">●</td><td></td><td></td><td class="y">●</td><td class="y">●</td></tr>
-      <tr><td>resolutiondate (hoặc changelog)</td><td></td><td class="y">●</td><td class="y">●</td><td></td><td class="y">●</td><td></td><td></td><td></td><td></td><td class="y">●</td></tr>
-      <tr><td>duedate / customfield_10102 / Sprint</td><td></td><td class="y">●</td><td class="y">●</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-      <tr><td>Story Points</td><td></td><td></td><td></td><td class="y">●</td><td class="y">●</td><td class="y">●</td><td></td><td></td><td></td><td></td></tr>
-      <tr><td>issuetype</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="y">●</td><td class="y">●</td><td></td><td></td></tr>
-      <tr><td>changelog</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="y">●</td><td></td></tr>
-      <tr><td>created</td><td></td><td></td><td></td><td></td><td class="y">●</td><td></td><td></td><td></td><td></td><td class="y">●</td></tr>
-    </tbody>
-  </table>
-  <p class="note2 r" style="--i:3">Mọi chỉ số đều cần <code>assignee.emailAddress</code> khớp email nhân viên để ticket được gán đúng người.</p>
-</section>
-
-<!-- 13 -->
-<section class="slide warm" id="j13" data-title="Việc cần làm trong Jira" data-group="D">
-  <div class="grp r" style="--i:0"><span class="tag need">Việc cần làm</span><span class="prog" data-prog="D"></span></div>
-  <h2 class="r" style="--i:1;font-size:clamp(24px,3vw,44px)">Checklist trước khi đồng bộ</h2>
-  <div class="fgrid c2" style="gap:8px 18px">
-    <label class="stp r" style="--i:2"><input type="checkbox" data-k="D1"><span><b>Story Points có giá trị</b>Mọi ticket cần tính khối lượng đều có <code>customfield_10111</code>.</span></label>
-    <label class="stp r" style="--i:2"><input type="checkbox" data-k="D2"><span><b>Có mốc hạn chót</b>Điền <code>duedate</code>, hoặc Ngày kết thúc kế hoạch, hoặc gán Sprint có ngày kết thúc.</span></label>
-    <label class="stp r" style="--i:3"><input type="checkbox" data-k="D3"><span><b>Đóng ticket có Resolution</b>Để có <code>resolutiondate</code> và nhận biết ticket huỷ.</span></label>
-    <label class="stp r" style="--i:3"><input type="checkbox" data-k="D4"><span><b>Tên loại ticket</b>Loại Bug và Incident có tên chứa "bug" và "incident".</span></label>
-    <label class="stp r" style="--i:4"><input type="checkbox" data-k="D5"><span><b>Email hiển thị và khớp</b>Email Jira của người được giao trùng email trong Quản lý nhân sự.</span></label>
-    <label class="stp r" style="--i:4"><input type="checkbox" data-k="D6"><span><b>Export có changelog</b>Dùng <code>expand=changelog</code>, giữ đủ trường trong ba nhóm.</span></label>
-  </div>
-</section>
-
-</main>
-
+</div>
 <script>
 (function () {
-  const slides = Array.from(document.querySelectorAll('.slide'));
-  const dotsEl = document.getElementById('dots'), bar = document.getElementById('bar'), count = document.getElementById('count'), hint = document.getElementById('hint');
-  let cur = -1, target = null, tt = null;
-  const deckEl = document.getElementById('deck');
-  slides.forEach((s, i) => {
-    const sp = document.createElement('div'); sp.className = 'snap'; sp.style.top = 'calc(' + i + ' * 100vh)'; sp.style.top = 'calc(' + i + ' * 100svh)'; deckEl.appendChild(sp);
-    s.style.zIndex = i + 1;
-    const b = document.createElement('button'); b.dataset.t = s.dataset.title || ('Slide ' + (i + 1)); b.setAttribute('aria-label', b.dataset.t);
-    b.addEventListener('click', () => go(i)); dotsEl.appendChild(b);
-  });
-  const dots = Array.from(dotsEl.children);
-  const vh = () => window.innerHeight;
-  const curIdx = () => target !== null ? target : Math.max(0, Math.min(slides.length - 1, Math.round(window.scrollY / vh())));
-  function go(i) { i = Math.max(0, Math.min(slides.length - 1, i)); target = i; clearTimeout(tt); tt = setTimeout(() => { target = null; }, 900);
-    window.scrollTo({ top: i * vh(), behavior: window.__instant ? 'instant' : 'smooth' }); }
-  function update() {
-    const y = window.scrollY, h = vh(); if (!h) return;
-    const idx = Math.max(0, Math.min(slides.length - 1, Math.round(y / h)));
-    slides.forEach((s, i) => s.style.setProperty('--cover', Math.max(0, Math.min(1, (y - i * h) / h)).toFixed(3)));
-    const total = document.documentElement.scrollHeight - h; bar.style.width = (total > 0 ? (y / total) * 100 : 0) + '%';
-    if (idx !== cur) { cur = idx; slides.forEach((s, i) => s.classList.toggle('active', i === cur)); dots.forEach((d, i) => d.classList.toggle('on', i === cur));
-      const s = slides[cur]; document.body.classList.toggle('ondark', s.classList.contains('dark')); count.textContent = (cur + 1) + ' / ' + slides.length; }
-  }
-  let tick = false;
-  window.addEventListener('scroll', () => { if (!tick) { tick = true; requestAnimationFrame(() => { update(); tick = false; }); } }, { passive: true });
-  window.addEventListener('resize', update);
-  window.addEventListener('keydown', e => {
-    if (e.target && e.target.tagName === 'INPUT') { if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return; }
-    const k = e.key;
-    if (['ArrowDown', 'ArrowRight', 'PageDown', ' '].includes(k)) { e.preventDefault(); go(curIdx() + 1); }
-    else if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(k)) { e.preventDefault(); go(curIdx() - 1); }
-    else if (k === 'Home') { e.preventDefault(); go(0); } else if (k === 'End') { e.preventDefault(); go(slides.length - 1); }
-    else if (k === 'f' || k === 'F') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); }
-  });
-  // checklist: lưu trạng thái tick
   const KEY = 'jira-fields-checks';
   let saved = {}; try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
   const boxes = Array.from(document.querySelectorAll('input[type=checkbox][data-k]'));
+  const prog = document.getElementById('prog');
   function refresh() {
-    boxes.forEach(b => { const row = b.closest('tr'); if (row) row.classList.toggle('done', b.checked); });
-    document.querySelectorAll('[data-prog]').forEach(p => {
-      const g = p.dataset.prog; const all = boxes.filter(b => b.dataset.k[0] === g); const n = all.filter(b => b.checked).length;
-      p.innerHTML = '<b>' + n + '</b> / ' + all.length + ' đã kiểm tra (toàn nhóm)';
-    });
+    boxes.forEach(b => b.closest('tr').classList.toggle('done', b.checked));
+    prog.innerHTML = '<b>' + boxes.filter(b => b.checked).length + '</b> / ' + boxes.length + ' đã kiểm tra';
   }
-  boxes.forEach(b => { b.checked = !!saved[b.dataset.k]; b.addEventListener('change', () => { saved[b.dataset.k] = b.checked; try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {} refresh(); }); });
-  refresh(); update();
-  setTimeout(() => hint.classList.add('off'), 6000);
-  requestAnimationFrame(() => slides[0].classList.add('active'));
+  boxes.forEach(b => {
+    b.checked = !!saved[b.dataset.k];
+    b.addEventListener('change', () => { saved[b.dataset.k] = b.checked; try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {} refresh(); });
+  });
+  refresh();
 })();
 </script>
 </body>
